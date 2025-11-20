@@ -70,7 +70,7 @@ class Triplet(BaseModel):
 
     prompt: Any
     response: Any
-    reward: Optional[float] = None
+    reward: Optional[list[float]] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -87,7 +87,7 @@ class RolloutLegacy(BaseModel):
     task: Optional[Task] = None
 
     # Primary, high-level feedback
-    final_reward: Optional[float] = None
+    final_reward: Optional[list[float]] = None
 
     # Structured, sequential feedback for RL-style optimization
     triplets: Optional[List[Triplet]] = None

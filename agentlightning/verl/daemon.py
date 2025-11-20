@@ -466,7 +466,7 @@ class AgentModeDaemon:
             triplets = self.adapter.adapt(spans)
 
         # Extract final reward from triplets
-        final_reward: Optional[float] = None
+        final_reward = None
         if triplets:
             # Search backwards through triplets for the first non-None reward
             for triplet in reversed(triplets):
@@ -658,7 +658,7 @@ class AgentModeDaemon:
             final_reward = sum(step_rewards)
             
             if not rollout.triplets:
-                finished_id_to_final_reward[rollout_id] = step_rewards
+                finished_id_to_final_reward[rollout_id] = final_reward
                 print(f"Warning: No triplets found for training rollout {rollout.rollout_id}, skipping.")
                 continue
 
@@ -687,7 +687,7 @@ class AgentModeDaemon:
                 "data_id": original_sample["data_id"],
             }
             finished_id_to_sample_info[rollout_id] = info
-            finished_id_to_final_reward[rollout_id] = step_rewards
+            finished_id_to_final_reward[rollout_id] = final_reward
         #
         # --- Data processing and tensor creation logic ---
         # Get all the reported data.

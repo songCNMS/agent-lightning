@@ -774,7 +774,7 @@ class LlmProxyTraceToTriplet(TraceToTripletBase):
             resp_ids = []
         return cast(List[int], prompt_ids), cast(List[int], resp_ids)
 
-    def _maybe_reward_value(self, span: Span) -> Optional[float]:
+    def _maybe_reward_value(self, span: Span) -> Optional[list[float]]:
         """Parse reward from typical AgentOps payloads or explicit reward spans."""
         attrs = span.attributes or {}
 
@@ -784,14 +784,23 @@ class LlmProxyTraceToTriplet(TraceToTripletBase):
             v = self._literal_eval_maybe(v)
             if isinstance(v, dict) and cast(Dict[str, Any], v).get("type") == "reward":
                 rv = cast(Dict[str, Any], v).get("value", None)
-                if rv is None or isinstance(rv, (int, float)):
-                    return None if rv is None else float(rv)
+                if rv is None:
+                    return None
+                elif isinstance(rv, (int, float)):
+                    return None
+                elif isinstance(rv, list):
+                    return [float(x) for x in rv]
+
 
         # Explicit reward span
         if span.name == SpanNames.REWARD.value:
             rv = attrs.get("reward", None)
-            if rv is None or isinstance(rv, (int, float)):
-                return None if rv is None else float(rv)
+            if rv is None:
+                return None
+            elif isinstance(rv, (int, float)):
+                return None
+            elif isinstance(rv, list):
+                return [float(x) for x in rv]
 
         return None
 
@@ -850,7 +859,7 @@ class LlmProxyTraceToTriplet(TraceToTripletBase):
         llm_items.sort(key=lambda x: x["seq"])
 
         # Collect rewards by sequence only.
-        rewards: List[Tuple[int, Optional[float]]] = []
+        rewards: List[Tuple[int, Optional[list[float]]]] = []
         for s in spans:
             val = self._maybe_reward_value(s)
             if val is not None:
@@ -858,7 +867,7 @@ class LlmProxyTraceToTriplet(TraceToTripletBase):
 
         # First-occurrence matching by sequence_id only:
         # For reward at sequence R, assign to the most recent unmatched LLM with seq < R.
-        assigned: Dict[str, Optional[float]] = {}
+        assigned: Dict[str, Optional[list[float]]] = {}
         for r_seq, r_val in sorted(rewards, key=lambda x: x[0]):
             for item in reversed(llm_items):
                 sid = item["span"].span_id
