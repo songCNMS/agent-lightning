@@ -92,7 +92,7 @@ def verl_default_config() -> Dict[str, Any]:
         },
         "trainer": {
             "n_gpus_per_node": 1,
-            "val_before_train": True,
+            "val_before_train": False,
             "critic_warmup": 0,
             "logger": ["console", "wandb"],
             "project_name": "AgentLightning",

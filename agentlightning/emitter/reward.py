@@ -74,11 +74,17 @@ def reward(fn: FnType) -> FnType:
         """Normalize the reward value into the span payload format."""
         if result is None:
             return {"type": "reward", "value": None}
-        if not isinstance(result, (float, int)):  # type: ignore
+        # if not isinstance(result, (list, float, int)):  # type: ignore
+        #     warnings.warn(f"Reward is ignored because it is not a number: {result}")
+        #     return {"type": "reward", "value": None}
+        if isinstance(result, (list, tuple)):
+            # If the result is a list or tuple, convert each element to float and store as a list
+            return {"type": "reward", "value": [float(r) for r in result]}
+        elif isinstance(result, (int, float)):
+            return {"type": "reward", "value": float(result)}
+        else:
             warnings.warn(f"Reward is ignored because it is not a number: {result}")
             return {"type": "reward", "value": None}
-        return {"type": "reward", "value": float(result)}
-
     # Check if the function is async
     is_async = asyncio.iscoroutinefunction(fn) or inspect.iscoroutinefunction(fn)
 
@@ -147,13 +153,15 @@ def emit_reward(reward: float, auto_export: bool = True) -> ReadableSpan:
     logger.debug(f"Emitting reward: {reward}")
     if isinstance(reward, (int, bool)):
         reward = float(reward)
-    if not isinstance(reward, float):
-        raise ValueError(f"Reward must be a number, got: {type(reward)}")
+    if isinstance(reward, (list, tuple)):
+        reward = [float(r) for r in reward]
+    if not isinstance(reward, (list, float)):
+        raise ValueError(f"Reward must be a number or list of numbers, got: {type(reward)}")
 
     # TODO: This should use the tracer from current context by tracer
     tracer = get_tracer(use_active_span_processor=auto_export)
     span = tracer.start_span(SpanNames.REWARD.value, attributes={"reward": reward})
-    # Do nothing; it's just a number
+    # Do nothing; it's just a number or list of numbers
     with span:
         pass
     if not isinstance(span, ReadableSpan):
@@ -190,18 +198,24 @@ def get_reward_value(span: SpanLike) -> Optional[float]:
             reward_value = reward_dict.get("value", None)
             if reward_value is None:
                 return None
-            if not isinstance(reward_value, float):
-                logger.error(f"Reward is not a number, got: {type(reward_value)}. This may cause undefined behaviors.")
-            return cast(float, reward_value)
+            if isinstance(reward_value, tuple):
+                reward_value = list(reward_value)
+            if not isinstance(reward_value, (list, float)):
+                logger.error(f"Reward is not a number or list, got: {type(reward_value)}. This may cause undefined behaviors.")
+            # return cast(float, reward_value)
+            return reward_value
 
     # Latest emit reward format
     if span.name == SpanNames.REWARD.value and span.attributes:
         reward_value = span.attributes.get("reward", None)
         if reward_value is None:
             return None
-        if not isinstance(reward_value, float):
-            logger.error(f"Reward is not a number, got: {type(reward_value)}. This may cause undefined behaviors.")
-        return cast(float, reward_value)
+        if isinstance(reward_value, tuple):
+            reward_value = list(reward_value)
+        if not isinstance(reward_value, (list, float)):
+                logger.error(f"Reward is not a number or list, got: {type(reward_value)}. This may cause undefined behaviors.")
+        # return cast(float, reward_value)
+        return reward_value
     return None
 
 

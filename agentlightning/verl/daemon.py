@@ -649,10 +649,16 @@ class AgentModeDaemon:
         for rollout_id, rollout in self._completed_rollouts_v0.items():
             original_sample = self._task_id_to_original_sample[rollout_id]
             sample_with_reward_count += int(rollout.final_reward is not None)
-            final_reward = self._fillna_reward(rollout)
+            step_rewards = self._fillna_reward(rollout)
+            if not isinstance(step_rewards, list):
+                step_rewards = [step_rewards]*len(rollout.triplets)
+                
+            assert len(step_rewards) == len(rollout.triplets), f"Length mismatch: step_rewards has length {len(step_rewards)}, but triplets has length {len(rollout.triplets)} for rollout {rollout_id}."
 
+            final_reward = sum(step_rewards)
+            
             if not rollout.triplets:
-                finished_id_to_final_reward[rollout_id] = final_reward
+                finished_id_to_final_reward[rollout_id] = step_rewards
                 print(f"Warning: No triplets found for training rollout {rollout.rollout_id}, skipping.")
                 continue
 
@@ -663,13 +669,25 @@ class AgentModeDaemon:
                 {"prompt_ids": t.prompt.get("token_ids", []), "response_ids": t.response.get("token_ids", [])}
                 for t in rollout.triplets
             ]
+            
+            # Extract step rewards from triplets if available
+            # Each triplet can have its own reward value
+            #  = []
+            # for triplet in rollout.triplets:
+            #     if triplet.reward is not None:
+            #         step_rewards.append(triplet.reward)
+            #     else:
+            #         # If no step reward, use the final reward
+            #         step_rewards.append(final_reward)
+            
             info = {
                 "reward": final_reward,
+                "step_rewards": step_rewards,  # Add list of step rewards
                 "trace_list": trace_list,
                 "data_id": original_sample["data_id"],
             }
             finished_id_to_sample_info[rollout_id] = info
-            finished_id_to_final_reward[rollout_id] = final_reward
+            finished_id_to_final_reward[rollout_id] = step_rewards
         #
         # --- Data processing and tensor creation logic ---
         # Get all the reported data.
@@ -693,9 +711,11 @@ class AgentModeDaemon:
         n_trunc_sample_because_of_response = 0
 
         for rollout_id, sample_info in finished_id_to_sample_info.items():
+            # Handle both list of step rewards and single reward value
             for turn_index, trace in enumerate(sample_info["trace_list"]):
-
-                reward_list.append(sample_info["reward"])
+                step_reward = sample_info["step_rewards"][turn_index]
+                reward_list.append(step_reward)
+                
                 prompt_ids, response_ids = trace["prompt_ids"], trace["response_ids"]
 
                 # Mark samples with prompts exceeding max_prompt_length to be dropped later
