@@ -558,7 +558,7 @@ class AgentModeDaemon:
 
         for rollout_id, rollout in self._completed_rollouts_v0.items():
             final_reward_raw: Optional[float] = rollout.final_reward
-            final_reward = self._fillna_reward(rollout)
+            final_reward = sum(self._fillna_reward(rollout))
             if not rollout.triplets:
                 print(f"Warning: No triplets found for test rollout {rollout.rollout_id}.")
                 sample_stat_list.append({"reward": final_reward})
