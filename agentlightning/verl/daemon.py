@@ -558,7 +558,7 @@ class AgentModeDaemon:
 
         for rollout_id, rollout in self._completed_rollouts_v0.items():
             final_reward_raw: Optional[float] = rollout.final_reward
-            final_reward = sum(self._fillna_reward(rollout))
+            final_reward = self._fillna_reward(rollout)[-1] #sum(self._fillna_reward(rollout))
             if not rollout.triplets:
                 print(f"Warning: No triplets found for test rollout {rollout.rollout_id}.")
                 sample_stat_list.append({"reward": final_reward})
@@ -653,12 +653,9 @@ class AgentModeDaemon:
             if not isinstance(step_rewards, list):
                 step_rewards = [step_rewards]*len(rollout.triplets)
                 
-            # assert len(step_rewards) == len(rollout.triplets), f"Length mismatch: step_rewards has length {len(step_rewards)}, but triplets has length {len(rollout.triplets)} for rollout {rollout_id}."
-            if len(step_rewards) < len(rollout.triplets):
-                # Pad step_rewards with final reward if not enough step rewards
-                step_rewards += [step_rewards[-1]] * (len(rollout.triplets) - len(step_rewards))
+            assert len(step_rewards) == len(rollout.triplets), f"Length mismatch: step_rewards has length {len(step_rewards)}, but triplets has length {len(rollout.triplets)} for rollout {rollout_id}."
 
-            final_reward = sum(step_rewards)
+            final_reward = step_rewards[-1]
             
             if not rollout.triplets:
                 finished_id_to_final_reward[rollout_id] = final_reward
