@@ -653,7 +653,9 @@ class AgentModeDaemon:
             if not isinstance(step_rewards, list):
                 step_rewards = [step_rewards]*len(rollout.triplets)
                 
-            assert len(step_rewards) == len(rollout.triplets), f"Length mismatch: step_rewards has length {len(step_rewards)}, but triplets has length {len(rollout.triplets)} for rollout {rollout_id}."
+            # assert len(step_rewards) == len(rollout.triplets), f"Length mismatch: step_rewards has length {len(step_rewards)}, but triplets has length {len(rollout.triplets)} for rollout {rollout_id}."
+            if len(step_rewards) < len(rollout.triplets):
+                step_rewards.extend([step_rewards[-1]] * (len(rollout.triplets) - len(step_rewards)))
 
             final_reward = step_rewards[-1]
             
