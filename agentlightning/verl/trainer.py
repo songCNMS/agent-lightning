@@ -449,51 +449,54 @@ class AgentLightningTrainer(RayPPOTrainer):
 
         for epoch in range(self.config.trainer.total_epochs):
             for batch_dict in self.train_dataloader:
-                metrics = {}
-                timing_raw = {}
-                is_last_step = self.global_steps >= self.total_training_steps
+                try:
+                    metrics = {}
+                    timing_raw = {}
+                    is_last_step = self.global_steps >= self.total_training_steps
 
-                # train step
-                metrics = self._train_step(batch_dict)
+                    # train step
+                    metrics = self._train_step(batch_dict)
 
-                # validate
-                if (
-                    self.val_reward_fn is not None
-                    and self.config.trainer.test_freq > 0
-                    and (is_last_step or self.global_steps % self.config.trainer.test_freq == 0)
-                ):
-                    with _timer("validate", timing_raw):
-                        val_metrics: dict = self._validate()
-                        if is_last_step:
-                            last_val_metrics = val_metrics
-                    metrics.update(val_metrics)
+                    # validate
+                    if (
+                        self.val_reward_fn is not None
+                        and self.config.trainer.test_freq > 0
+                        and (is_last_step or self.global_steps % self.config.trainer.test_freq == 0)
+                    ):
+                        with _timer("validate", timing_raw):
+                            val_metrics: dict = self._validate()
+                            if is_last_step:
+                                last_val_metrics = val_metrics
+                        metrics.update(val_metrics)
 
-                if self.config.trainer.save_freq > 0 and (
-                    is_last_step or self.global_steps % self.config.trainer.save_freq == 0
-                ):
-                    with _timer("save_checkpoint", timing_raw):
-                        self._save_checkpoint()
+                    if self.config.trainer.save_freq > 0 and (
+                        is_last_step or self.global_steps % self.config.trainer.save_freq == 0
+                    ):
+                        with _timer("save_checkpoint", timing_raw):
+                            self._save_checkpoint()
 
-                # step metrics
-                metrics.update(
-                    {
-                        "training/global_step": self.global_steps,
-                        "training/epoch": epoch,
-                    }
-                )
+                    # step metrics
+                    metrics.update(
+                        {
+                            "training/global_step": self.global_steps,
+                            "training/epoch": epoch,
+                        }
+                    )
 
-                # TODO: make a canonical logger that supports various backend
-                logger.log(data=metrics, step=self.global_steps)
+                    # TODO: make a canonical logger that supports various backend
+                    logger.log(data=metrics, step=self.global_steps)
 
-                if is_last_step:
-                    pprint(f"Final validation metrics: {last_val_metrics}")
-                    progress_bar.close()
+                    if is_last_step:
+                        pprint(f"Final validation metrics: {last_val_metrics}")
+                        progress_bar.close()
 
-                    # This exit logic is to ensure a robust CI.
-                    pprint(f"Flush the logger...")
-                    del logger  # Make sure the loggers are flushed and closed properly
-                    pprint(f"Training finished at step {self.global_steps}.")
-                    return
+                        # This exit logic is to ensure a robust CI.
+                        pprint(f"Flush the logger...")
+                        del logger  # Make sure the loggers are flushed and closed properly
+                        pprint(f"Training finished at step {self.global_steps}.")
+                        return
 
-                progress_bar.update(1)
-                self.global_steps += 1
+                    progress_bar.update(1)
+                    self.global_steps += 1
+                except Exception as e:
+                    pprint(f"Exception during training at global step {self.global_steps}: {e}")
