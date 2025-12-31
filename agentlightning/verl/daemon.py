@@ -546,6 +546,35 @@ class AgentModeDaemon:
             print(f"Error while waiting for tasks to finish: {e}")
             raise
 
+    def _remove_hint_tags_from_token_ids(self, token_ids: List[int]) -> List[int]:
+        """Remove text wrapped in <hint> and </hint> tags from token IDs.
+        
+        Args:
+            token_ids: List of token IDs to process.
+            
+        Returns:
+            List of token IDs with hint segments removed.
+        """
+        if not token_ids:
+            return token_ids
+        
+        try:
+            # Decode token IDs to text
+            text = self.tokenizer.decode(token_ids, skip_special_tokens=False)
+            
+            # Remove all <hint>...</hint> segments using regex
+            import re
+            cleaned_text = re.sub(r'<hint>.*?</hint>', '', text, flags=re.DOTALL)
+            
+            # Re-encode the cleaned text back to token IDs
+            cleaned_token_ids = self.tokenizer.encode(cleaned_text, add_special_tokens=False)
+            
+            return cleaned_token_ids
+        except Exception as e:
+            # If anything goes wrong, return original token IDs
+            print(f"Warning: Failed to remove hint tags: {e}. Returning original token IDs.")
+            return token_ids
+
     def get_test_metrics(self):
         """Calculates and returns metrics for a validation run."""
         assert not self.is_train, "This method should only be called during validation."
@@ -728,6 +757,10 @@ class AgentModeDaemon:
                 reward_list.append(step_reward)
                 
                 prompt_ids, response_ids = trace["prompt_ids"], trace["response_ids"]
+                
+                # Remove hint tags from both prompt_ids and response_ids
+                prompt_ids = self._remove_hint_tags_from_token_ids(prompt_ids)
+                # response_ids = self._remove_hint_tags_from_token_ids(response_ids)
 
                 # Mark samples with prompts exceeding max_prompt_length to be dropped later
                 if len(prompt_ids) > max_prompt_length:
