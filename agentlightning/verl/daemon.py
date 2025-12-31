@@ -429,7 +429,7 @@ class AgentModeDaemon:
                 raise RuntimeError("Internal loop is not running.")
             future = asyncio.run_coroutine_threadsafe(coro, self._internal_loop)
         try:
-            future.result(timeout=60)  # Wait for completion with a timeout
+            future.result(timeout=360)  # Wait for completion with a timeout
         except Exception as e:
             print(f"Failed to set up data on server: {e}")
             raise
@@ -653,8 +653,12 @@ class AgentModeDaemon:
         sample_with_reward_count = 0
         for rollout_id, rollout in self._completed_rollouts_v0.items():
             original_sample = self._task_id_to_original_sample[rollout_id]
+            if rollout.final_reward is None:
+                print(f"Warning: No final reward for training rollout {rollout.rollout_id}, skipping.")
+                continue
+            
             sample_with_reward_count += int(rollout.final_reward is not None)
-            step_rewards = self._fillna_reward(rollout)
+            # step_rewards = self._fillna_reward(rollout)
             if not isinstance(step_rewards, list):
                 step_rewards = [step_rewards]*len(rollout.triplets)
                 
