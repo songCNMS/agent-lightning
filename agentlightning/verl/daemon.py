@@ -687,7 +687,7 @@ class AgentModeDaemon:
                 continue
             
             sample_with_reward_count += int(rollout.final_reward is not None)
-            # step_rewards = self._fillna_reward(rollout)
+            step_rewards = self._fillna_reward(rollout)
             if not isinstance(step_rewards, list):
                 step_rewards = [step_rewards]*len(rollout.triplets)
                 
