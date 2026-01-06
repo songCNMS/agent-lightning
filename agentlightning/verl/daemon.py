@@ -759,7 +759,7 @@ class AgentModeDaemon:
                 prompt_ids, response_ids = trace["prompt_ids"], trace["response_ids"]
                 
                 # Remove hint tags from both prompt_ids and response_ids
-                prompt_ids = self._remove_hint_tags_from_token_ids(prompt_ids)
+                # prompt_ids = self._remove_hint_tags_from_token_ids(prompt_ids)
                 # response_ids = self._remove_hint_tags_from_token_ids(response_ids)
 
                 # Mark samples with prompts exceeding max_prompt_length to be dropped later
