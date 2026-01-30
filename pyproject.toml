@@ -234,19 +234,19 @@ torch = [
   { index = "pytorch-cu128", group = "torch-cu128" },
   { index = "pytorch-cpu", group = "torch-cpu" },
 ]
-tinker_cookbook = { git = "https://github.com/thinking-machines-lab/tinker-cookbook", rev = "20e26a629797188aa8c6f34474b0d4757b20b90d" }
+# tinker_cookbook = { git = "https://github.com/thinking-machines-lab/tinker-cookbook", rev = "20e26a629797188aa8c6f34474b0d4757b20b90d" }
 
 [[tool.uv.index]]
 name = "pypi"
-url = "https://pypi.org/simple"
+url = "http://10.100.197.13/simple/"
 
 [[tool.uv.index]]
 name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
+url = "http://10.100.197.13/simple/"
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
+url = "http://10.100.197.13/simple/"
 
 [tool.uv.extra-build-dependencies]
 flash-attn = [
