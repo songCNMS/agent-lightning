@@ -45,6 +45,28 @@ __all__ = [
 ]
 
 
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+import os
+
+# Replace with your info / 替换为你的信息
+USERNAME = "lei.song"
+PROJECT = "tau_agent"  
+EXP_ID = "exp_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+
+tb_log_dir = f"/mnt/nfs2/shared_tensorboard_log/{USERNAME}/{PROJECT}/{EXP_ID}"
+os.makedirs(tb_log_dir, exist_ok=True)
+
+# writer = SummaryWriter(log_dir)
+
+# # Training loop
+# for epoch in range(100):
+#     loss = train_one_epoch()
+#     writer.add_scalar('Loss/train', loss, epoch)
+#     writer.add_scalar('Accuracy/train', acc, epoch)
+
+# writer.close()
+
 @contextmanager
 def _timer(name: str, timing_raw: Dict[str, float]):
     with Timer(name=name, logger=None) as timer:
@@ -430,6 +452,8 @@ class AgentLightningTrainer(RayPPOTrainer):
         )
         self.agent_mode_daemon.start()
 
+        writer = SummaryWriter(tb_log_dir)
+
         # perform validation before training
         # currently, we only support validation using the reward_function.
         if self.val_reward_fn is not None and self.config.trainer.get("val_before_train", True):
@@ -437,7 +461,10 @@ class AgentLightningTrainer(RayPPOTrainer):
             assert val_metrics, f"{val_metrics=}"
             pprint(f"Initial validation metrics: {val_metrics}")
             logger.log(data=val_metrics, step=self.global_steps)
+            for item in val_metrics.items():
+                writer.add_scalar(item[0], item[1], self.global_steps)
             if self.config.trainer.get("val_only", False):
+                writer.close()
                 return
 
         # add tqdm
@@ -485,6 +512,8 @@ class AgentLightningTrainer(RayPPOTrainer):
 
                     # TODO: make a canonical logger that supports various backend
                     logger.log(data=metrics, step=self.global_steps)
+                    for item in metrics.items():
+                        writer.add_scalar(item[0], item[1], self.global_steps)
 
                     if is_last_step:
                         pprint(f"Final validation metrics: {last_val_metrics}")
